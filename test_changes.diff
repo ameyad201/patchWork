@@ -1,0 +1,530 @@
+diff --git a/TestCntlrApp/cfg/imsi.txt b/TestCntlrApp/cfg/imsi.txt
+index c16383f..d2415dd 100644
+--- a/TestCntlrApp/cfg/imsi.txt
++++ b/TestCntlrApp/cfg/imsi.txt
+@@ -1,4 +1,4 @@
+-2 0 8 1 1 1 2 3 4 5 6 7 8 9 0
++1 0 1 0 1 1 2 3 4 5 6 7 8 9 1
+ 5 0 5 0 2 9 8 7 6 5 0 0 5 0 6
+ 5 0 5 0 2 9 8 7 6 5 0 0 5 0 9
+ 2 0 0 0 1 0 0 0 1 0 0 0 9 0 5
+diff --git a/TestCntlrApp/cfg/nbAppCfg.txt b/TestCntlrApp/cfg/nbAppCfg.txt
+index bb1bdab..2ce4953 100644
+--- a/TestCntlrApp/cfg/nbAppCfg.txt
++++ b/TestCntlrApp/cfg/nbAppCfg.txt
+@@ -1,11 +1,11 @@
+ CELL_ID                  1
+ TAC                      1
+-ENB_IP_ADDR              192.168.200.159
++ENB_IP_ADDR              10.0.0.5
+ MME_ID                   1
+-MME_ADDR                 192.168.200.157
+-SCTP_IP_ADDR             192.168.200.159
++MME_ADDR                 10.0.0.4
++SCTP_IP_ADDR             10.0.0.5
+ ENB_NAME                 "RADISYS"
+-PLMN_ID                  50502
++PLMN_ID                  10101
+ HEARTBEAT_INTERVAL       5000
+ RTO_INITIAL              200
+ RTO_MIN                  100
+@@ -18,6 +18,6 @@ MAX_EXPIRY               200
+ S1_SETUP_TMR_VAL         2000
+ NO_OF_SCTP_IN_STREAMS    3
+ NO_OF_SCTP_OUT_STREAMS   3
+-UE_ETH_INTF              enp1s0f1
+-VS_IP_ADDR               192.168.200.136
++UE_ETH_INTF              ens5
++VS_IP_ADDR               10.168.0.5
+ CFGEND
+diff --git a/TestCntlrApp/cfg/testCaseList_1.txt b/TestCntlrApp/cfg/testCaseList_1.txt
+index 1a5c99d..2b175fc 100644
+--- a/TestCntlrApp/cfg/testCaseList_1.txt
++++ b/TestCntlrApp/cfg/testCaseList_1.txt
+@@ -1,21 +1,21 @@
+ StepAttachWithImsi 1
+-StepAttachWithGuti 1
+-StepReAttach      1
+-AttachWithAUTV    1
+-ErrIndWithIvalidUeS1apIds 1
+-SyncFailure       1
+-NomalDetach       1
+-EndToEndAttach    1
+-ServiceRequest    1
+-ServiceReject     1
+-NormalTau         1
+-AttachWithSecModeReject 1
+-UeCntxtRelRequest 1
+-PeriodicTau       1
+-AttachRequest_PCO_DRX 1
+-PeriodicTauReject  1
+-NasNonDelivery  1
+-IdleModeDetach 1
+-#PeriodicTauNoTauComplete 1
+-#AuthFailAMF 1
+-#NwInitDetach      1   
++StepAttachWithGuti 0
++StepReAttach      0
++AttachWithAUTV    0
++ErrIndWithIvalidUeS0apIds 0
++SyncFailure       0
++NomalDetach       0
++EndToEndAttach    0
++ServiceRequest    0
++ServiceReject     0
++NormalTau         0
++AttachWithSecModeReject 0
++UeCntxtRelRequest 0
++PeriodicTau       0
++AttachRequest_PCO_DRX 0
++PeriodicTauReject  0
++NasNonDelivery  0
++IdleModeDetach 0
++#PeriodicTauNoTauComplete 0
++#AuthFailAMF 0
++#NwInitDetach      0   
+diff --git a/TestCntlrApp/cfg/ueAppCfg.txt b/TestCntlrApp/cfg/ueAppCfg.txt
+index b102c60..d610dce 100644
+--- a/TestCntlrApp/cfg/ueAppCfg.txt
++++ b/TestCntlrApp/cfg/ueAppCfg.txt
+@@ -1,5 +1,5 @@
+ TRF_GEN_IP_ADDR        172.0.0.0   
+-AUTH_TYPE              XOR
++AUTH_TYPE              MILENAGE
+ NAS_CYPH_CFG           eea0
+ NAS_INT_PROT_CFG       eia1
+ NAS_PROC_GUARD_TIMER   10
+diff --git a/TestCntlrApp/src/cm/envopt.h b/TestCntlrApp/src/cm/envopt.h
+index 121bf4c..42ee99d 100644
+--- a/TestCntlrApp/src/cm/envopt.h
++++ b/TestCntlrApp/src/cm/envopt.h
+@@ -126,25 +126,15 @@
+ /* Flags that apply for the entire product are defined here */
+ /* The legacy and the system services defintions are here   */
+ #define USE_LINUX
+-#define CMINET_BSDCOMPAT
+ /* #define SS_TICKS_SEC        100 */
+-#define CMFILE_REORG_1
+-#define CMFILE_REORG_2
+-#define CM_INET2
+-#define SSINT2
+ #undef HI_MULTI_THREADED 
+-#define SS_PERF
+ #define SS_WL_REGION        1
+-#define SS_FLOAT
+-#define SS_MT_TMR
+ #define SS_M_PROTO_REGION
+-#define SLES9_PLUS
+ #undef SS_TSKLOG_ENABLE
+ #define SS_MULTICORE_SUPPORT
+ #undef  SS_USE_ICC_MEMORY
+ #define SS_LOCKLESS_MEMORY
+ #define SS_USE_ZBC_MEMORY
+-#define SS_THR_REG_MAP
+ #undef  SS_RBUF
+ #undef  SS_LICENSE_CHECK
+ #undef  SS_ROUTE_MSG_CORE1
+@@ -152,14 +142,12 @@
+ 
+ #undef  SSI_MEM_CORR_PREVENTION
+ #undef  MS_MBUF_CORRUPTION
+-//CHINNA
++
+ #define TENB_MULT_CELL_SUPPRT
+ 
+ /* LTE product specific definitions are here */
+ #define TUCL_TTI_RCV
+ #define LTE_PAL_ENB
+-#define LTE_ENB_PAL
+-#define TENB_RTLIN_CHANGES
+ #define TENB_SPLIT_ARCH_SUPPORT
+ #define TENB_SPLIT_ARCH
+ #undef TENB_T2K3K_SPECIFIC_CHANGES
+@@ -177,8 +165,6 @@
+ 
+ #undef DAM_PDCP_OPT
+ 
+-#define REL_850
+-#define TA_NEW
+ #undef TENB_FP
+ #if defined(MODE) && (MODE==TDD)
+ #define LTE_TDD 1
+@@ -266,17 +252,10 @@
+ /* SZT interface (App<->S1AP) flags */
+ #define SZTV1
+ #define SZTV2
+-#define SZTV3
+-
+-/* CZT interface (App<->X2AP) flags */
+-#define CZTV1
+ 
+ /* LSZ interface (SM<->S1AP) flags */
+ #define LSZV1
+ 
+-/* LEG interface (SM<->EGTP) flags */
+-#define LEGV2
+-
+ /* CTF interface (App<->CL) flags */
+ #define CTF_VER3
+ #undef CTF_V3
+@@ -298,15 +277,12 @@
+ #define RGR_V1
+ #define RGR_V2
+ #define RGR_CQI_REPT
+-#define RGR_SI_SCH
+ #define RGR_RRM_TICK
+ 
+ /* RRM related interface flags */
+ #define RM_INTF
+ 
+ /* LSB interface flags */
+-#define LSB4
+-#define LSB8
+ #define SB_CHECKSUM   /* Define to include trillium supplied function */
+ #define SB_CHECKSUM_CRC 
+ 
+@@ -437,7 +413,6 @@
+ #endif
+ 
+ /* product options */
+-#define SZ_ENB
+ #define CM_PASN_CRIT_HANDL
+ #undef  M_PASN_DBG
+ #undef S1AP_REL851
+@@ -445,8 +420,6 @@
+ #define SZ_USTA
+ 
+ /* interface options */
+-#define LCSZUISZT     /* loosely coupled, SZ upper layer SZT interface */
+-#define LCSZMILSZ     /* loosely coupled, SZ manegement  LSZ interface */
+ #define LCSZLISCT     /* loosely coupled, SZ lower layer SCT interface */
+ 
+ /* Based on the selection of coupling above the section below  */
+@@ -514,10 +487,7 @@
+ /* not talk to TUCL on HIT in the latest TeNB. However if it were  */
+ /* to use TUCL, it would be loosely coupled as TUCL is multi-      */
+ /* threaded.                                                       */
+-/* TODO - LCEGUIEGT should not be needed.                          */
+ #define LCSMEGMILEG
+-#define LCEGLIHIT
+-#define LCEGUIEGT
+ #define LCEGMILEG
+ 
+ /* Managing the loose coupling definitions on the interface based   */
+@@ -1399,8 +1369,6 @@
+ 
+ /* We need to define LCHIUIHIT if there is at least one layer talking */
+ /* to TUCL in a loosely coupled fashion.                              */
+-#define LCHIUIHIT
+-#define LCHIMILHI
+ 
+ /* The section below should not be edited normally.                   */
+ #ifdef LCHIUIHIT
+diff --git a/TestCntlrApp/src/fw_cm/cm_os.c b/TestCntlrApp/src/fw_cm/cm_os.c
+index f03a0f0..1e19053 100644
+--- a/TestCntlrApp/src/fw_cm/cm_os.c
++++ b/TestCntlrApp/src/fw_cm/cm_os.c
+@@ -77,7 +77,7 @@
+ /* cm_os_c_001.main_12: Excluding header files for 4GMX */
+ #ifndef SS_4GMX_LCORE
+ #include <termios.h>
+-#include <stropts.h>
++//#include <stropts.h>
+ #include <poll.h>
+ #endif
+ #endif /* DEF_NTSSLIB */
+diff --git a/TestCntlrStub/bin/imsi.txt b/TestCntlrStub/bin/imsi.txt
+deleted file mode 100644
+index c16383f..0000000
+--- a/TestCntlrStub/bin/imsi.txt
++++ /dev/null
+@@ -1,32 +0,0 @@
+-2 0 8 1 1 1 2 3 4 5 6 7 8 9 0
+-5 0 5 0 2 9 8 7 6 5 0 0 5 0 6
+-5 0 5 0 2 9 8 7 6 5 0 0 5 0 9
+-2 0 0 0 1 0 0 0 1 0 0 0 9 0 5
+-5 0 5 0 2 9 8 7 6 5 0 0 5 1 0
+-5 0 5 0 2 9 8 7 6 5 0 0 5 1 1
+-5 0 5 0 2 9 8 7 6 5 0 0 5 1 2
+-5 0 5 0 2 9 8 7 6 5 0 0 5 1 3
+-5 0 5 0 2 9 8 7 6 5 0 0 5 1 4
+-5 0 5 0 2 9 8 7 6 5 0 0 5 1 5
+-5 0 5 0 2 9 8 7 6 5 0 0 5 1 6
+-5 0 5 0 2 9 8 7 6 5 0 0 5 1 7
+-5 0 5 0 2 9 8 7 6 5 0 0 5 1 8
+-5 0 5 0 2 9 8 7 6 5 0 0 5 1 9
+-5 0 5 0 2 9 8 7 6 5 0 0 5 2 0
+-5 0 5 0 2 9 8 7 6 5 0 0 5 2 1
+-5 0 5 0 2 9 8 7 6 5 0 0 5 2 2
+-5 0 5 0 2 9 8 7 6 5 0 0 5 2 3
+-5 0 5 0 2 9 8 7 6 5 0 0 5 2 4
+-5 0 5 0 2 9 8 7 6 5 0 0 5 2 5
+-5 0 5 0 2 9 8 7 6 5 0 0 5 2 6
+-5 0 5 0 2 9 8 7 6 5 0 0 5 2 7
+-5 0 5 0 2 9 8 7 6 5 0 0 5 2 8
+-5 0 5 0 2 9 8 7 6 5 0 0 5 2 9
+-5 0 5 0 2 9 8 7 6 5 0 0 5 3 0
+-5 0 5 0 2 9 8 7 6 5 0 0 5 3 1
+-5 0 5 0 2 9 8 7 6 5 0 0 5 3 2
+-5 0 5 0 2 9 8 7 6 5 0 0 5 3 3
+-5 0 5 0 2 9 8 7 6 5 0 0 5 3 4
+-5 0 5 0 2 9 8 7 6 5 0 0 5 3 5
+-5 0 5 0 2 9 8 7 6 5 0 0 5 3 6
+-5 0 5 0 2 9 8 7 6 5 0 0 5 3 7
+diff --git a/TestCntlrStub/bin/imsi.txt b/TestCntlrStub/bin/imsi.txt
+new file mode 120000
+index 0000000..d5681e6
+--- /dev/null
++++ b/TestCntlrStub/bin/imsi.txt
+@@ -0,0 +1 @@
++../../TestCntlrApp/cfg/imsi.txt
+\ No newline at end of file
+diff --git a/TestCntlrStub/bin/nbAppCfg.txt b/TestCntlrStub/bin/nbAppCfg.txt
+deleted file mode 100644
+index bb1bdab..0000000
+--- a/TestCntlrStub/bin/nbAppCfg.txt
++++ /dev/null
+@@ -1,23 +0,0 @@
+-CELL_ID                  1
+-TAC                      1
+-ENB_IP_ADDR              192.168.200.159
+-MME_ID                   1
+-MME_ADDR                 192.168.200.157
+-SCTP_IP_ADDR             192.168.200.159
+-ENB_NAME                 "RADISYS"
+-PLMN_ID                  50502
+-HEARTBEAT_INTERVAL       5000
+-RTO_INITIAL              200
+-RTO_MIN                  100
+-RTO_MAX                  1000
+-S1_PREP_TIMER_VAL        5000
+-S1_OVERALL_TIMER_VAL     10000
+-SCTP_UDP_SERVICE_TYPE    0
+-INACTIVITY_TIMER_VAL     2000000
+-MAX_EXPIRY               200
+-S1_SETUP_TMR_VAL         2000
+-NO_OF_SCTP_IN_STREAMS    3
+-NO_OF_SCTP_OUT_STREAMS   3
+-UE_ETH_INTF              enp1s0f1
+-VS_IP_ADDR               192.168.200.136
+-CFGEND
+diff --git a/TestCntlrStub/bin/nbAppCfg.txt b/TestCntlrStub/bin/nbAppCfg.txt
+new file mode 120000
+index 0000000..f7b8bef
+--- /dev/null
++++ b/TestCntlrStub/bin/nbAppCfg.txt
+@@ -0,0 +1 @@
++../../TestCntlrApp/cfg/nbAppCfg.txt
+\ No newline at end of file
+diff --git a/TestCntlrStub/bin/testCaseList_1.txt b/TestCntlrStub/bin/testCaseList_1.txt
+deleted file mode 100644
+index 1a5c99d..0000000
+--- a/TestCntlrStub/bin/testCaseList_1.txt
++++ /dev/null
+@@ -1,21 +0,0 @@
+-StepAttachWithImsi 1
+-StepAttachWithGuti 1
+-StepReAttach      1
+-AttachWithAUTV    1
+-ErrIndWithIvalidUeS1apIds 1
+-SyncFailure       1
+-NomalDetach       1
+-EndToEndAttach    1
+-ServiceRequest    1
+-ServiceReject     1
+-NormalTau         1
+-AttachWithSecModeReject 1
+-UeCntxtRelRequest 1
+-PeriodicTau       1
+-AttachRequest_PCO_DRX 1
+-PeriodicTauReject  1
+-NasNonDelivery  1
+-IdleModeDetach 1
+-#PeriodicTauNoTauComplete 1
+-#AuthFailAMF 1
+-#NwInitDetach      1   
+diff --git a/TestCntlrStub/bin/testCaseList_1.txt b/TestCntlrStub/bin/testCaseList_1.txt
+new file mode 120000
+index 0000000..743d347
+--- /dev/null
++++ b/TestCntlrStub/bin/testCaseList_1.txt
+@@ -0,0 +1 @@
++../../TestCntlrApp/cfg/testCaseList_1.txt
+\ No newline at end of file
+diff --git a/TestCntlrStub/bin/testCaseList_2.txt b/TestCntlrStub/bin/testCaseList_2.txt
+deleted file mode 100644
+index 9c636ab..0000000
+--- a/TestCntlrStub/bin/testCaseList_2.txt
++++ /dev/null
+@@ -1,5 +0,0 @@
+-StepAttachWithImsi 2
+-ServiceRequest    1
+-SyncFailure    2
+-NomalTau 1
+-AttachWithSecModeReject 1
+diff --git a/TestCntlrStub/bin/testCaseList_2.txt b/TestCntlrStub/bin/testCaseList_2.txt
+new file mode 120000
+index 0000000..512902e
+--- /dev/null
++++ b/TestCntlrStub/bin/testCaseList_2.txt
+@@ -0,0 +1 @@
++../../TestCntlrApp/cfg/testCaseList_2.txt
+\ No newline at end of file
+diff --git a/TestCntlrStub/bin/testCaseList_3.txt b/TestCntlrStub/bin/testCaseList_3.txt
+deleted file mode 100644
+index c042105..0000000
+--- a/TestCntlrStub/bin/testCaseList_3.txt
++++ /dev/null
+@@ -1,10 +0,0 @@
+-ServiceRequest    1
+-ServiceReject     1
+-EndToEndAttach    1 
+-StepAttachWithImsi 1
+-StepAttachWithImsi 1
+-StepAttachWithGuti 1
+-StepAttachWithImsi 1
+-StepAttachWithImsi 1
+-StepAttachWithImsi 1
+-StepAttachWithGuti 2
+diff --git a/TestCntlrStub/bin/testCaseList_3.txt b/TestCntlrStub/bin/testCaseList_3.txt
+new file mode 120000
+index 0000000..3c72b59
+--- /dev/null
++++ b/TestCntlrStub/bin/testCaseList_3.txt
+@@ -0,0 +1 @@
++../../TestCntlrApp/cfg/testCaseList_3.txt
+\ No newline at end of file
+diff --git a/TestCntlrStub/bin/tfwAppcfg.txt b/TestCntlrStub/bin/tfwAppcfg.txt
+deleted file mode 100644
+index 519f61a..0000000
+--- a/TestCntlrStub/bin/tfwAppcfg.txt
++++ /dev/null
+@@ -1,2 +0,0 @@
+-TFW_IP_ADDR 172.16.5.7
+-CFGEND
+diff --git a/TestCntlrStub/bin/tfwAppcfg.txt b/TestCntlrStub/bin/tfwAppcfg.txt
+new file mode 120000
+index 0000000..ee715c1
+--- /dev/null
++++ b/TestCntlrStub/bin/tfwAppcfg.txt
+@@ -0,0 +1 @@
++../../TestCntlrApp/cfg/tfwAppcfg.txt
+\ No newline at end of file
+diff --git a/TestCntlrStub/bin/ueAppCfg.txt b/TestCntlrStub/bin/ueAppCfg.txt
+deleted file mode 100644
+index b102c60..0000000
+--- a/TestCntlrStub/bin/ueAppCfg.txt
++++ /dev/null
+@@ -1,7 +0,0 @@
+-TRF_GEN_IP_ADDR        172.0.0.0   
+-AUTH_TYPE              XOR
+-NAS_CYPH_CFG           eea0
+-NAS_INT_PROT_CFG       eia1
+-NAS_PROC_GUARD_TIMER   10
+-NUM_OF_UE              1
+-CFGEND
+diff --git a/TestCntlrStub/bin/ueAppCfg.txt b/TestCntlrStub/bin/ueAppCfg.txt
+new file mode 120000
+index 0000000..554cc85
+--- /dev/null
++++ b/TestCntlrStub/bin/ueAppCfg.txt
+@@ -0,0 +1 @@
++../../TestCntlrApp/cfg/ueAppCfg.txt
+\ No newline at end of file
+diff --git a/TestCntlrStub/bin/ueCfg.txt b/TestCntlrStub/bin/ueCfg.txt
+deleted file mode 100644
+index f67aca7..0000000
+--- a/TestCntlrStub/bin/ueCfg.txt
++++ /dev/null
+@@ -1,21 +0,0 @@
+-ALGO_TYPE         AES
+-OP_ID             2
+-UE_NW_CAP      TRUE
+-   EEA0        TRUE
+-   EEA1        TRUE
+-   EEA2        TRUE
+-   EIA0        TRUE
+-   EIA1        TRUE
+-   EIA2        TRUE
+-AUTH_TYPE      MILENAGE
+-OP_KEY         0 17 34 51 68 85 102 119 136 153 170 187 204 221 238 255
+-SHARED_KEY     0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+-NAS_CYPH_CFG   1
+-NAS_INT_PROT_CFG  1
+-SRV_PLMN    5 245 32 0 1 0
+-UE_RAD_CAP_RRC_PDU_LEN 63
+-UE_RAD_CAP_RRC_PDU  01 e8 01 03 ac 59 80 07 00 08 20 81 83 9b 4e 1c 3f f8 7f f0 ff e1 ff c3 ff 87 
+-ff 0f fe 1f fd f8 37 62 78 00 a0 18 5f 80 00 00 00 1c 07 e0 dd 89 e0 00 00 00 
+-07 09 f8 37 62 78 00 00 00 00 00
+-PDN_TYPE     1
+-CFGEND
+diff --git a/TestCntlrStub/bin/ueCfg.txt b/TestCntlrStub/bin/ueCfg.txt
+new file mode 120000
+index 0000000..bea101c
+--- /dev/null
++++ b/TestCntlrStub/bin/ueCfg.txt
+@@ -0,0 +1 @@
++../../TestCntlrApp/cfg/ueCfg.txt
+\ No newline at end of file
+diff --git a/TestCntlrStub/src/ts_utls.c b/TestCntlrStub/src/ts_utls.c
+index 8265b45..ec32804 100644
+--- a/TestCntlrStub/src/ts_utls.c
++++ b/TestCntlrStub/src/ts_utls.c
+@@ -170,20 +170,26 @@ void tsStartDlData(unsigned char ueId)
+ 
+ void tsStartUlData(unsigned char ueId)
+ {
+-   static int portNum = 5001;
+-   char port[4] = {0};
+-   char bindAddr[15] = {0};
++   int portNum = 5001;
++   char bindAddr[16] = {0};
++   char port[8] = {0};
+    char ipCfgCmd[100] ={0};
+    unsigned char idx = 0;
+ 
+    while(idx < UeIpInfoLst[ueId - 1].noIfAssinedIps)
+    {
++	   printf("Entering to send data\n");
+       convertIpToString(bindAddr, UeIpInfoLst[ueId-1].UeIpAdrLst[idx]);
++      printf("Converted IP addr %s \n", bindAddr); 
++      
+       sprintf(port, "%d", portNum);
++      printf("Converted IP addr %s %s\n", bindAddr, port); 
+       sprintf(ipCfgCmd, "ifconfig %s:UE%d %s up", ueIntf, ueId, bindAddr);
++      printf("command %s\n", ipCfgCmd); 
+       system(ipCfgCmd);
+       trfgen_start_test(2, videoSrvrIp, bindAddr, port);
+       portNum++;
++      
+       idx++;
+    }
+    return;
+@@ -394,6 +400,12 @@ int TC_msg_recv(int msgid, int timeout)
+       unsigned char  ueId = TC_AttachAccept.ue_Id;
+       memcpy(UeIpInfoLst[ueId-1].UeIpAdrLst[UeIpInfoLst[ueId-1].noIfAssinedIps],
+              TC_AttachAccept.esmInfo.pAddr.addrInfo, 4);
++      printf("IP addr %x%x%x%x\n", 
++		      TC_AttachAccept.esmInfo.pAddr.addrInfo[0], 
++		      TC_AttachAccept.esmInfo.pAddr.addrInfo[1], 
++		      TC_AttachAccept.esmInfo.pAddr.addrInfo[2], 
++		      TC_AttachAccept.esmInfo.pAddr.addrInfo[3]); 
++
+       T3412 = TC_AttachAccept.t3412;
+       printf("[Stub] T3412 = %d\n", T3412);
+       UeIpInfoLst[ueId-1].noIfAssinedIps++;
+@@ -1765,11 +1777,11 @@ int tsSendResetReq(unsigned int resetType, int numOfUes, unsigned char *ueLst)
+       ((ResetReq*)msgptr)->cause.causeVal = 1;
+ 
+       ((ResetReq*)msgptr)->r.partialRst.numOfConn = numOfUes;
+-      ((ResetReq*)msgptr)->r.partialRst.ueIdLst = malloc(numOfUes);
+-      memcpy(((ResetReq*)msgptr)->r.partialRst.ueIdLst, ueLst, numOfUes);
++      ((ResetReq*)msgptr)->r.partialRst.ueS1apIdPairList = malloc(numOfUes * sizeof(UeS1apIdPair));
++      memcpy(((ResetReq*)msgptr)->r.partialRst.ueS1apIdPairList, ueLst, numOfUes);
+ 
+       tfwApi(RESET_REQ, msgptr);
+-      free(((ResetReq*)msgptr)->r.partialRst.ueIdLst);
++      free(((ResetReq*)msgptr)->r.partialRst.ueS1apIdPairList);
+       free(msgptr);
+    }
+ 
