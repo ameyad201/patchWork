@@ -1,41 +1,44 @@
 diff --git a/TestCntlrApp/cfg/imsi.txt b/TestCntlrApp/cfg/imsi.txt
-index c16383f..d2415dd 100644
+index c16383f..95d094b 100644
 --- a/TestCntlrApp/cfg/imsi.txt
 +++ b/TestCntlrApp/cfg/imsi.txt
-@@ -1,4 +1,4 @@
+@@ -1,4 +1,5 @@
 -2 0 8 1 1 1 2 3 4 5 6 7 8 9 0
 +1 0 1 0 1 1 2 3 4 5 6 7 8 9 1
++1 0 1 0 1 1 2 3 4 5 6 7 8 9 2
  5 0 5 0 2 9 8 7 6 5 0 0 5 0 6
  5 0 5 0 2 9 8 7 6 5 0 0 5 0 9
  2 0 0 0 1 0 0 0 1 0 0 0 9 0 5
 diff --git a/TestCntlrApp/cfg/nbAppCfg.txt b/TestCntlrApp/cfg/nbAppCfg.txt
-index bb1bdab..2ce4953 100644
+index bb1bdab..e3c6de4 100644
 --- a/TestCntlrApp/cfg/nbAppCfg.txt
 +++ b/TestCntlrApp/cfg/nbAppCfg.txt
 @@ -1,11 +1,11 @@
  CELL_ID                  1
  TAC                      1
 -ENB_IP_ADDR              192.168.200.159
-+ENB_IP_ADDR              10.0.0.5
++ENB_IP_ADDR              172.31.2.228 
  MME_ID                   1
 -MME_ADDR                 192.168.200.157
 -SCTP_IP_ADDR             192.168.200.159
-+MME_ADDR                 10.0.0.4
-+SCTP_IP_ADDR             10.0.0.5
- ENB_NAME                 "RADISYS"
+-ENB_NAME                 "RADISYS"
 -PLMN_ID                  50502
-+PLMN_ID                  10101
++MME_ADDR                 54.215.44.1
++SCTP_IP_ADDR             172.31.2.228
++ENB_NAME                 "RADISYS1"
++PLMN_ID                  00101
  HEARTBEAT_INTERVAL       5000
  RTO_INITIAL              200
  RTO_MIN                  100
-@@ -18,6 +18,6 @@ MAX_EXPIRY               200
+@@ -18,6 +18,7 @@ MAX_EXPIRY               200
  S1_SETUP_TMR_VAL         2000
  NO_OF_SCTP_IN_STREAMS    3
  NO_OF_SCTP_OUT_STREAMS   3
 -UE_ETH_INTF              enp1s0f1
 -VS_IP_ADDR               192.168.200.136
-+UE_ETH_INTF              ens5
-+VS_IP_ADDR               10.168.0.5
++UE_ETH_INTF              eth0
++VS_IP_ADDR               8.8.8.8
++ENB_IP_ADDR_EXT          172.31.2.228
  CFGEND
 diff --git a/TestCntlrApp/cfg/testCaseList_1.txt b/TestCntlrApp/cfg/testCaseList_1.txt
 index 1a5c99d..2b175fc 100644
@@ -84,16 +87,19 @@ index 1a5c99d..2b175fc 100644
 +#AuthFailAMF 0
 +#NwInitDetach      0   
 diff --git a/TestCntlrApp/cfg/ueAppCfg.txt b/TestCntlrApp/cfg/ueAppCfg.txt
-index b102c60..d610dce 100644
+index b102c60..6ecd8f4 100644
 --- a/TestCntlrApp/cfg/ueAppCfg.txt
 +++ b/TestCntlrApp/cfg/ueAppCfg.txt
-@@ -1,5 +1,5 @@
+@@ -1,7 +1,7 @@
  TRF_GEN_IP_ADDR        172.0.0.0   
 -AUTH_TYPE              XOR
 +AUTH_TYPE              MILENAGE
  NAS_CYPH_CFG           eea0
  NAS_INT_PROT_CFG       eia1
  NAS_PROC_GUARD_TIMER   10
+-NUM_OF_UE              1
++NUM_OF_UE              2
+ CFGEND
 diff --git a/TestCntlrApp/src/cm/envopt.h b/TestCntlrApp/src/cm/envopt.h
 index 121bf4c..42ee99d 100644
 --- a/TestCntlrApp/src/cm/envopt.h
@@ -220,6 +226,230 @@ index 121bf4c..42ee99d 100644
  
  /* The section below should not be edited normally.                   */
  #ifdef LCHIUIHIT
+diff --git a/TestCntlrApp/src/enbApp/nb.c b/TestCntlrApp/src/enbApp/nb.c
+index bc20ae4..f8e3efa 100644
+--- a/TestCntlrApp/src/enbApp/nb.c
++++ b/TestCntlrApp/src/enbApp/nb.c
+@@ -705,6 +705,8 @@ NbConfigReq   *cfg
+    smCfgCb.cellId              = cfg->cellId;
+    smCfgCb.trackAreaCode       = cfg->tac;
+    smCfgCb.enbIpAddr           = cfg->enbIpAddr;
++   smCfgCb.enbIpAddrExt        = cfg->enbIpAddrExt;
++
+    cmMemset(smCfgCb.enbName,0,NB_ENB_NAME);
+    if(strlen((S8*)cfg->enbName) < NB_ENB_NAME)
+    {
+@@ -1475,9 +1477,13 @@ PUBLIC S16 NbEnbConfigTransferHdl
+    mmeCb =      &nbCb.mmeInfo;
+    NbUeCb       *ueCb   = NULLP;
+ 
++   printf("Entering Enb Transfer %d\n", enbConfigTrnsf->ueId);
++
+    if ( ROK != (cmHashListFind(&(nbCb.ueCbLst), (U8 *)&(enbConfigTrnsf->ueId),
+       sizeof(U32),0,(PTR *)&ueCb)))
+    {
++      printf("Ue NOT found %d\n", enbConfigTrnsf->ueId);
++
+       NB_LOG_ERROR(&nbCb, "UeCb not found for UeId %d", enbConfigTrnsf->ueId);
+       NB_LOG_EXITFN(&nbCb, RFAILED);
+    }
+@@ -1487,14 +1493,18 @@ PUBLIC S16 NbEnbConfigTransferHdl
+    if ( ROK != (cmHashListFind(&(nbCb.eNBCbLst), (U32 *)&(ueCb->enbId),
+       sizeof(U32),0,(PTR *)&enbCb)))
+    {
++      printf("EnbId  NOT found %d\n", uDatEvnt.enbId);
++
+       NB_LOG_ERROR(&nbCb, "enbCb not found for enbId %d", uDatEvnt.enbId);
+       RETVALUE(RFAILED);
+    }
+    if (enbCb == NULLP){
+       NB_LOG_ERROR(&nbCb, "enbCb is NULL!!");
+    }
++   printf("Entering build transfer\n");
+    if (nbBldENbConfigTransfer(&(uDatEvnt.pdu), enbCb, ueCb) != ROK)
+    {
++      printf("build transfer failed\n");
+       RETVALUE(RFAILED);
+    }
+ 
+@@ -1503,9 +1513,11 @@ PUBLIC S16 NbEnbConfigTransferHdl
+    uDatEvnt.peerId.pres = PRSNT_NODEF;
+    uDatEvnt.peerId.val = mmeCb->mmeId;
+ 
++   printf("Sending Enb config transfer\n");
+    /* Send the pdu to the MME */
+    if((NbIfmS1apSndMgmtMsg(&uDatEvnt)) != ROK)
+    {
++      printf("Sending Enb config transfer failed\n");
+       RETVALUE(RFAILED);
+    }
+ 
+diff --git a/TestCntlrApp/src/enbApp/nb_s1ap_hndlr.c b/TestCntlrApp/src/enbApp/nb_s1ap_hndlr.c
+index 58bdbbf..cb04274 100644
+--- a/TestCntlrApp/src/enbApp/nb_s1ap_hndlr.c
++++ b/TestCntlrApp/src/enbApp/nb_s1ap_hndlr.c
+@@ -2084,7 +2084,7 @@ PUBLIC S16 nbS1apBldUeCapIndPdu
+  *    -#Success : ROK
+  *    -#Failure : RFAILED
+  */
+-PRIVATE S16 nbHandleInitCtxtPrcSetup(NbUeCb *ueCb, S1apPdu *pdu) {
++PRIVATE S16 nbHandleInitCtxtPrcSetup(NbUeCb *ueCb, S1apPdu *pdu, U32 *teid) {
+   NbErabLst *erabInfo = NULLP;
+   U16 cnt = 0;
+   S16 retVal = RFAILED;
+@@ -2121,6 +2121,7 @@ PRIVATE S16 nbHandleInitCtxtPrcSetup(NbUeCb *ueCb, S1apPdu *pdu) {
+         NB_LOG_ERROR(&nbCb, "processing ERABs failed");
+         RETVALUE(RFAILED);
+       }
++      *teid = erabInfo->erabs[0].remTeid; 
+       break;
+     }
+     case Sztid_UESecurCapabilities: {
+@@ -2268,7 +2269,7 @@ PRIVATE S16 nbHandleInitCtxtPrcSetup(NbUeCb *ueCb, S1apPdu *pdu) {
+   RETVALUE(retVal);
+ }
+ 
+-PRIVATE S16 nbHandleRabSetupMsg(NbUeCb *ueCb, S1apPdu *pdu) {
++PRIVATE S16 nbHandleRabSetupMsg(NbUeCb *ueCb, S1apPdu *pdu, U32 *teid) {
+   U8 idx;
+   SztInitiatingMsg *initMsg = &pdu->pdu.val.initiatingMsg;
+   SztE_RABSetupRqst *rabSetupIE = &initMsg->value.u.sztE_RABSetupRqst;
+@@ -2287,6 +2288,7 @@ PRIVATE S16 nbHandleRabSetupMsg(NbUeCb *ueCb, S1apPdu *pdu) {
+           NB_LOG_ERROR(&nbCb, "processing ERABs failed");
+           RETVALUE(RFAILED);
+         }
++	*teid = erabInfo->erabs[0].remTeid;
+         break;
+       }
+     }
+@@ -2351,6 +2353,7 @@ PRIVATE S16 nbHandleRabSetupMsg(NbUeCb *ueCb, S1apPdu *pdu) {
+ PUBLIC S16 nbPrcIncS1apMsg(NbUeCb *ueCb, S1apPdu *pdu, U8 msgType) {
+   U32 procedureCodeVal;
+   U8 ret = RFAILED;
++  U32 teid = 0;
+   // Get the procedure code
+   procedureCodeVal = pdu->pdu.val.initiatingMsg.procedureCode.val;
+   if (procedureCodeVal == 11) // downlink NAS Transport MSG
+@@ -2358,13 +2361,14 @@ PUBLIC S16 nbPrcIncS1apMsg(NbUeCb *ueCb, S1apPdu *pdu, U8 msgType) {
+     ret = nbProcessDlNasMsg(ueCb, pdu, msgType);
+   } else if (procedureCodeVal == 9) // initial context setup request
+   {
+-    ret = nbHandleInitCtxtPrcSetup(ueCb, pdu);
++    ret = nbHandleInitCtxtPrcSetup(ueCb, pdu, &teid);
+     // Inform the Tfw about Initial Context Setup
+     if ((nbCb.dropInitCtxtSetup[(ueCb->ueId) - 1].isDropICSEnable != TRUE) &&
+         (nbCb.dropICSSndCtxtRel[(ueCb->ueId) - 1].sndICSRspUeCtxtRel != TRUE)) {
+       ret = nbUiSendIntCtxtSetupIndToUser(
+           ueCb->ueId,
+-          nbCb.initCtxtSetupFail[(ueCb->ueId) - 1].initCtxtSetupFailInd);
++          nbCb.initCtxtSetupFail[(ueCb->ueId) - 1].initCtxtSetupFailInd, 
++          teid);
+       if (ret != ROK) {
+         NB_LOG_ERROR(&nbCb, "Failed to Send Initial Context Setup"
+                             "Indiaction to ueApp");
+@@ -2374,7 +2378,12 @@ PUBLIC S16 nbPrcIncS1apMsg(NbUeCb *ueCb, S1apPdu *pdu, U8 msgType) {
+   {
+     NB_LOG_DEBUG(&nbCb,
+                  "nbPrcIncS1apMsg(): Handling RAB Setup Request message\n");
+-    ret = nbHandleRabSetupMsg(ueCb, pdu);
++    ret = nbHandleRabSetupMsg(ueCb, pdu, &teid);
++    ret = nbUiSendIntCtxtSetupIndToUser(
++          ueCb->ueId,
++          0xAB, 
++          teid);
++
+   } else if (procedureCodeVal == 23) // context release command message
+   {
+     ret = nbHandleS1UeReleaseCmd(ueCb);
+@@ -2956,6 +2965,8 @@ PUBLIC S16 nbGetErabInfoFrmIntCnxt
+       tunInfo->lclTeId = nbGetUeLclTeid(ueCb->ueId,
+             erabItem->e_RAB_ID.val);
+ #endif
++      printf("####### Enb TEID: %#x, AGW TEID :%#x \n", 
++              tunInfo->lclTeId,  tunInfo->remTeId);
+       /* store the SGW IP Address */
+       switch(erabItem->transportLyrAddr.len)
+       {
+@@ -4386,9 +4397,9 @@ PUBLIC S16 nbBldENbConfigTransfer
+      }
+      if (tgtEnbCb->enbId == ueCb->enbId)
+      {
+-       continue;
++       break;;
+      }
+-     break;
++     prevnbCb = tgtEnbCb;
+    }
+    ie1 = &(ie->value.u.sztSONConfigTfr.targeteNB_ID);
+ 
+diff --git a/TestCntlrApp/src/enbApp/nb_smm_enbapp.c b/TestCntlrApp/src/enbApp/nb_smm_enbapp.c
+index 0772b00..7252fc3 100644
+--- a/TestCntlrApp/src/enbApp/nb_smm_enbapp.c
++++ b/TestCntlrApp/src/enbApp/nb_smm_enbapp.c
+@@ -1201,7 +1201,7 @@ PUBLIC S16 smBuildGenCfg(lwrMng)
+    /* Filling the ENB Type */
+    cfg->dataAppAddr.type                     = CM_TPTADDR_IPV4;
+    cfg->dataAppAddr.u.ipv4TptAddr.port       = NB_DFLT_EGTP_PORT;
+-   cfg->dataAppAddr.u.ipv4TptAddr.address    = smCfgCb.enbIpAddr;
++   cfg->dataAppAddr.u.ipv4TptAddr.address    = smCfgCb.enbIpAddrExt;
+    cfg->mmeId                                = smCfgCb.mmeCfg[0]->mmeId;
+    cfg->mmeAddr                              = smCfgCb.mmeCfg[0]->mmeAddr[0];
+ 
+diff --git a/TestCntlrApp/src/enbApp/nb_smm_init.h b/TestCntlrApp/src/enbApp/nb_smm_init.h
+index 1a46904..daa2de5 100644
+--- a/TestCntlrApp/src/enbApp/nb_smm_init.h
++++ b/TestCntlrApp/src/enbApp/nb_smm_init.h
+@@ -423,6 +423,7 @@ typedef struct _smCfgCb
+    U16 cellId;
+    U16 trackAreaCode;
+    U32 enbIpAddr; /* used directly from here while s1ap: not required in gen cfg */
++   U32 enbIpAddrExt; /* used directly from here while s1ap: not required in gen cfg */
+    U32 sctpIpAddr;
+    U8  noOfCfg;         /* num MME configurations */
+    LnbSmMmeCfg  *mmeCfg[MAX_NUM_PEER];
+diff --git a/TestCntlrApp/src/enbApp/nb_traffic_handler.c b/TestCntlrApp/src/enbApp/nb_traffic_handler.c
+index 447da3d..7c786db 100644
+--- a/TestCntlrApp/src/enbApp/nb_traffic_handler.c
++++ b/TestCntlrApp/src/enbApp/nb_traffic_handler.c
+@@ -343,6 +343,8 @@ PRIVATE Void nbAppRcvdPktHndlr
+    pktType = (pktData[13] << 8) + pktData[12];
+    if(pktType == NB_APP_ETH_TYPE_IP)
+    {
++      NB_LOG_DEBUG(&nbCb,"nbAppRcvdPktHandler: Received IP packet"); 
++
+       /* Handle the IP packet */
+       nbAppDlvrIpPkt(pktData, bytesRcvd);
+    }
+@@ -359,7 +361,7 @@ PRIVATE Void nbAppRcvdPktHndlr
+    }
+    else
+    {
+-      /*NB_LOG_DEBUG(&nbCb," nbAppRcvdPktHndlr: Unknown packet type received");*/
++      NB_LOG_DEBUG(&nbCb," nbAppRcvdPktHndlr: Unknown packet type received");
+    }
+ 
+    RETVOID;
+diff --git a/TestCntlrApp/src/enbApp/nb_ui.c b/TestCntlrApp/src/enbApp/nb_ui.c
+index 68b7a62..ac32382 100644
+--- a/TestCntlrApp/src/enbApp/nb_ui.c
++++ b/TestCntlrApp/src/enbApp/nb_ui.c
+@@ -831,7 +831,7 @@ PUBLIC S16 nbUiSendUeCtxRelIndToUser(U32 ueId)
+    RETVALUE(ROK);
+ } /* nbUiSendUeCtxRelIndToUser */
+ 
+-PUBLIC S16 nbUiSendIntCtxtSetupIndToUser(U32 ueId, U8 status)
++PUBLIC S16 nbUiSendIntCtxtSetupIndToUser(U32 ueId, U8 status, U32 teid)
+ {
+    NbtResponse *rsp = NULLP;
+    Pst pst;
+@@ -852,6 +852,7 @@ PUBLIC S16 nbUiSendIntCtxtSetupIndToUser(U32 ueId, U8 status)
+ 
+    rsp->t.IntCtxtSetUpInd.ueId = ueId;
+    rsp->t.IntCtxtSetUpInd.status = status;
++   rsp->t.IntCtxtSetUpInd.teid = teid; 
+ 
+    if(ROK != cmPkNbtMsgRsp(&pst, rsp))
+    {
 diff --git a/TestCntlrApp/src/fw_cm/cm_os.c b/TestCntlrApp/src/fw_cm/cm_os.c
 index f03a0f0..1e19053 100644
 --- a/TestCntlrApp/src/fw_cm/cm_os.c
@@ -233,6 +463,174 @@ index f03a0f0..1e19053 100644
  #include <poll.h>
  #endif
  #endif /* DEF_NTSSLIB */
+diff --git a/TestCntlrApp/src/fw_cm/nbt.x b/TestCntlrApp/src/fw_cm/nbt.x
+index 1d292bf..dcfbb35 100644
+--- a/TestCntlrApp/src/fw_cm/nbt.x
++++ b/TestCntlrApp/src/fw_cm/nbt.x
+@@ -168,6 +168,7 @@ typedef struct _nbConfigReq
+    U16   cellId;                  /* cell id */
+    U16   tac;                     /* tracking area code*/
+    U32   enbIpAddr;               /* enodeb address */
++   U32   enbIpAddrExt;            /* Public enodeb address */
+    U16   mmeId;                   /* mme id */
+    U32   mmeAddr;                 /* mme code */
+    U32   sctpIpAddr;              /* sctp address */
+@@ -335,6 +336,7 @@ typedef struct _nbUeCtxRelInd
+ typedef struct _nbIntCtxtSetUpInd
+ {
+    U32 ueId;
++   U32 teid; 
+    U8 status;
+ }NbIntCtxtSetUpInd;
+ typedef struct _nbIntCtxtSetUpDrpdInd
+@@ -522,7 +524,7 @@ EXTERN Void nbUiSendSuccessResponseToUser(NbMsgTypes msgType);
+ EXTERN S16 NbEnbCfgReqHdl(NbConfigReq   *cfg);
+ EXTERN S16 nbUiSendResetAckToUser(NbResetAckldg *resetAck);
+ EXTERN S16 nbUiSendUeCtxRelIndToUser(U32 ueId);
+-EXTERN S16 nbUiSendIntCtxtSetupIndToUser(U32 ueId, U8 status);
++EXTERN S16 nbUiSendIntCtxtSetupIndToUser(U32 ueId, U8 status, U32 teid);
+ EXTERN S16 nbUiSendErabRelCmdInfoToUser(NbErabRelCmd *erabRelInfo);
+ /********************************************************************30**
+ 
+diff --git a/TestCntlrApp/src/tfwApp/fw_api_int.c b/TestCntlrApp/src/tfwApp/fw_api_int.c
+index 850db5f..723aab1 100644
+--- a/TestCntlrApp/src/tfwApp/fw_api_int.c
++++ b/TestCntlrApp/src/tfwApp/fw_api_int.c
+@@ -1278,6 +1278,8 @@ PUBLIC S16 handlEnbConfig(FwNbConfigReq_t *data)
+       msgReq->t.configReq.enbIpAddr = fwCb->nbAppCfgCb.enbIPAddr;
+    }
+ 
++   msgReq->t.configReq.enbIpAddrExt = fwCb->nbAppCfgCb.enbIPAddrExt;
++
+    if (data->mmeId_pr.pres  == TRUE)
+    {
+       msgReq->t.configReq.mmeId  = data->mmeId_pr.mme_id;
+diff --git a/TestCntlrApp/src/tfwApp/fw_api_int.h b/TestCntlrApp/src/tfwApp/fw_api_int.h
+index 60f7132..7ea8418 100644
+--- a/TestCntlrApp/src/tfwApp/fw_api_int.h
++++ b/TestCntlrApp/src/tfwApp/fw_api_int.h
+@@ -135,6 +135,7 @@ extern "C" {
+ #define SUCC                          0
+ #define TRUE                          1
+ #define FAIL                          1
++#define OOO                           2
+ 
+ typedef unsigned char   Bool;     /* boolean */
+ typedef char            S8;       /* signed - 8 bits */
+diff --git a/TestCntlrApp/src/tfwApp/fw_api_int.x b/TestCntlrApp/src/tfwApp/fw_api_int.x
+index d05a43b..461ade0 100644
+--- a/TestCntlrApp/src/tfwApp/fw_api_int.x
++++ b/TestCntlrApp/src/tfwApp/fw_api_int.x
+@@ -1523,6 +1523,7 @@ typedef struct _fwNbUeCtxRelInd
+ typedef struct _fwNbIntCtxSetupInd
+ {
+    U32 ueId;
++   U32 teid;
+    U8 status;
+ }FwNbIntCtxSetupInd_t;
+ 
+diff --git a/TestCntlrApp/src/tfwApp/fw_mi.c b/TestCntlrApp/src/tfwApp/fw_mi.c
+index 2d7337a..71f3ca0 100644
+--- a/TestCntlrApp/src/tfwApp/fw_mi.c
++++ b/TestCntlrApp/src/tfwApp/fw_mi.c
+@@ -102,9 +102,7 @@ PUBLIC S16 fwActvInit
+    fwCb->init.acnt = FALSE;
+    fwCb->init.trc = FALSE;
+    fwCb->init.usta = TRUE;
+-#ifdef DEBUGP
+    fwCb->init.dbgMask = LFW_LOGLVL_TRACE;
+-#endif
+    fwCb->uePst.srcInst   = FW_INST_ID;
+    fwCb->uePst.srcEnt    = fwCb->init.ent;
+    fwCb->uePst.srcProcId = fwCb->init.procId;
+diff --git a/TestCntlrApp/src/tfwApp/fw_nbmsg_handler.c b/TestCntlrApp/src/tfwApp/fw_nbmsg_handler.c
+index d8dd98a..2b267c9 100644
+--- a/TestCntlrApp/src/tfwApp/fw_nbmsg_handler.c
++++ b/TestCntlrApp/src/tfwApp/fw_nbmsg_handler.c
+@@ -327,6 +327,7 @@ PUBLIC S16 sendNbAppIntCtxSetupIndToTstCntlr(NbIntCtxtSetUpInd *rsp)
+ 
+    msg->ueId = rsp->ueId;
+    msg->status = rsp->status;
++   msg->teid = rsp->teid;
+ 
+    (*fwCb->testConrollerCallBack)(INT_CTX_SETUP_IND, msg,
+          sizeof(FwNbIntCtxSetupInd_t));
+diff --git a/TestCntlrApp/src/tfwApp/fw_read_dflcfg.c b/TestCntlrApp/src/tfwApp/fw_read_dflcfg.c
+index 8cc1852..0eef705 100644
+--- a/TestCntlrApp/src/tfwApp/fw_read_dflcfg.c
++++ b/TestCntlrApp/src/tfwApp/fw_read_dflcfg.c
+@@ -95,7 +95,9 @@ PUBLIC S8 *nbAppCfgTagLst[MAX_NB_CFG_PARAM] = {
+    "NO_OF_SCTP_IN_STREAMS",
+    "NO_OF_SCTP_OUT_STREAMS",
+    "UE_ETH_INTF",
+-   "VS_IP_ADDR"
++   "VS_IP_ADDR", 
++   "ENB_IP_ADDR_EXT"
++
+ };
+ 
+ PUBLIC S8 *ueCfgTagLst[MAX_UE_CFG_PARAM] = {
+@@ -858,6 +860,14 @@ PRIVATE S16 nbAppReadConfigParams(Void)
+                videoSrvrIp[cnt] = '\0';
+             }
+             break;
++         case ENB_IP_ADDR_EXT:
++            {
++               FW_LOG_DEBUG(fwCb, "ENB_IP_ADDR_EXT: %s", tagVal);
++               cmInetAddr((S8*)tagVal,&(fwCb->nbAppCfgCb.enbIPAddrExt));
++               fwCb->nbAppCfgCb.enbIPAddrExt = CM_INET_HTON_U32(fwCb->nbAppCfgCb.\
++                     enbIPAddrExt);
++            }
++
+          default:
+             {
+                FW_LOG_ERROR(fwCb,"INVALID ENTRY");
+diff --git a/TestCntlrApp/src/tfwApp/fw_read_dflcfg.h b/TestCntlrApp/src/tfwApp/fw_read_dflcfg.h
+index e321ede..b136d5c 100644
+--- a/TestCntlrApp/src/tfwApp/fw_read_dflcfg.h
++++ b/TestCntlrApp/src/tfwApp/fw_read_dflcfg.h
+@@ -84,6 +84,7 @@ typedef struct _nbAppCfgCb
+    U32 cellId;                   /*cell id*/
+    U16 tac;                      /*tracking area code*/
+    U32 enbIPAddr;                /*enodeb address*/
++   U32 enbIPAddrExt;             /*enodeb address PUBLIC IP*/
+    U32 mmeId;                    /*mme id*/
+    U32 mmeAddr;                  /*mme code*/
+    U32 sctpIPAddr;               /*sctp address*/
+@@ -140,6 +141,7 @@ typedef enum {
+    NO_OF_SCTP_OUT_STREAMS,
+    UE_ETH_INTF,
+    VS_IP_ADDR,
++   ENB_IP_ADDR_EXT,
+    MAX_NB_CFG_PARAM
+ }nbAppCfgTagNum;
+ 
+diff --git a/TestCntlrApp/src/ueApp/ue_ex_ms.c b/TestCntlrApp/src/ueApp/ue_ex_ms.c
+index 443bb3a..b7893c8 100644
+--- a/TestCntlrApp/src/ueApp/ue_ex_ms.c
++++ b/TestCntlrApp/src/ueApp/ue_ex_ms.c
+@@ -324,9 +324,7 @@ PUBLIC S16 ueActvInit
+    CmEdmInit edmInit;
+ 
+    UE_GET_CB(ueAppCb);
+-#ifdef DEBUGP
+    ueAppCb->init.dbgMask = LUE_LOGLVL_TRACE;
+-#endif
+    UE_LOG_ENTERFN(ueAppCb);
+ 
+    /* save initialization parameters */
+diff --git a/TestCntlrApp/src/ueApp/ue_log.h b/TestCntlrApp/src/ueApp/ue_log.h
+index ed3d933..d914f32 100644
+--- a/TestCntlrApp/src/ueApp/ue_log.h
++++ b/TestCntlrApp/src/ueApp/ue_log.h
+@@ -9,6 +9,7 @@
+ #define UE_APP_MODULE_NAME          "UE"
+ #define UE_DFLT_LOGLVL     LUE_LOGLVL_DEBUG
+ 
++#define UE_LOGS
+ #ifdef UE_LOGS
+ #define UE_LOG_ENTERFN(_ueCb)\
+ do {\
 diff --git a/TestCntlrStub/bin/imsi.txt b/TestCntlrStub/bin/imsi.txt
 deleted file mode 100644
 index c16383f..0000000
@@ -466,11 +864,240 @@ index 0000000..bea101c
 @@ -0,0 +1 @@
 +../../TestCntlrApp/cfg/ueCfg.txt
 \ No newline at end of file
+diff --git a/TestCntlrStub/src/ts_PagingProc.c b/TestCntlrStub/src/ts_PagingProc.c
+index bc150a1..479eed7 100644
+--- a/TestCntlrStub/src/ts_PagingProc.c
++++ b/TestCntlrStub/src/ts_PagingProc.c
+@@ -40,6 +40,34 @@
+ 
+ extern int paging_ueid;
+ 
++
++int testPagingProc(unsigned char ueId)
++{
++   printf("\n-----------------------\n"\
++         "Waiting for paging indication\n"\
++         "-----------------------\n");
++   
++   if (TC_msg_recv(UE_PAGING_IND, 100) == SUCC)
++   {
++      printf("\nReceived Paging indication\n");
++      printf("\n-----------------------\n"\
++        	 "Sening Service request\n"\
++        	 "-----------------------\n");
++      tsSendServiceRequest(paging_ueid, TEST_TYPE_PAGING);
++      if(TC_msg_recv(INT_CTX_SETUP_IND, 10) == SUCC)
++      {
++         printf("\n[Stub] Received Initial Context Setup indication\n");
++      }
++   }
++   else
++   {
++      printf("\n[Stub] Paging failed\n");
++   }
++   sleep(2);
++
++   return 0;
++}
++
+ int testNormalPaging(unsigned char ueId)
+ {
+    tsSendAttachRequest(ueId);
+diff --git a/TestCntlrStub/src/ts_atchDtchProcs.c b/TestCntlrStub/src/ts_atchDtchProcs.c
+index a4d24d0..89bc8bb 100644
+--- a/TestCntlrStub/src/ts_atchDtchProcs.c
++++ b/TestCntlrStub/src/ts_atchDtchProcs.c
+@@ -281,10 +281,10 @@ void testErrIndWithIvalidUeS1apIds(unsigned char ueId)
+ int testUeInitiatedDedBerReq(unsigned char ueId)
+ {
+    void* msgptr = NULL;
+-   ue_Esm_Tft *tft = NULL;
+    tsStepByStepAttachWithImsi(ueId);
+    printf("[Stub] Entering tsStepByStepAttachWithImsi(), ueId(%d)\n", ueId);
+-
++#if 0
++   ue_Esm_Tft *tft = NULL;
+    /* Fill Attach request */
+    msgptr = malloc(sizeof(ueBearerAllocReq_t));
+    memset(msgptr, 0, sizeof(ueBearerAllocReq_t));
+@@ -351,8 +351,13 @@ int testUeInitiatedDedBerReq(unsigned char ueId)
+    printf("\n[Stub] Sending Ue Bearer Resource allocation request, ueId(%d)\n", ueId);
+    tfwApi(UE_BER_RES_ALLOC_REQ, msgptr);
+    free(msgptr);
+-
++#endif
+    /* Wait For Auth request indication */
++   if (TC_msg_recv(UE_EMM_INFORMATION, 10) == SUCC)
++   {
++      printf("\n[Stub]Received UE EMM INFO ueId(%d)\n", ueId);
++   }
++
+    if (TC_msg_recv(UE_ACT_DED_BER_REQ, 10) == SUCC)
+    {
+       printf("\n[Stub]Received Activate Dedicated bearer Request ueId(%d)\n", ueId);
+diff --git a/TestCntlrStub/src/ts_main.c b/TestCntlrStub/src/ts_main.c
+index 5153dc2..f008214 100644
+--- a/TestCntlrStub/src/ts_main.c
++++ b/TestCntlrStub/src/ts_main.c
+@@ -50,6 +50,7 @@ int msgQid = -1;
+ 
+ static pthread_t timer_tid;
+ extern pthread_mutex_t timer_queue_mutex;
++extern tsBrData  brData[2]; 
+ 
+ UeIpInfo UeIpInfoLst[32];
+ UeDedBerInfo UeDedBerLst[32];
+@@ -384,7 +385,6 @@ int main(int argc, char *argv[])
+             printf("[Stub] ueId(%d)\n", id);
+             tsStepByStepAttachWithGuti(id);
+          }
+-
+          printf("[Stub] Detaching UEs...\n");
+          sleep(2);
+ 
+@@ -554,10 +554,14 @@ int main(int argc, char *argv[])
+       }
+       else if (!strcmp(argv[1], "AttachAndUlData"))
+       {
++         FILE* file  = fopen("/tmp/teid.csv",  "w+");
++         fprintf(file, "%s,%s\n", "TEID","IP") ;
++         int i = 0;
+          for (id = 1; id <= noOfUe; id++)
+          {
++             printf("Attach for ID: %d\n", id);
+             tsSendAttachRequest(id);
+-            sleep(1);
++            sleep(10);
+          }
+          unsigned int attempts = 0;
+          int fd;
+@@ -570,12 +574,49 @@ int main(int argc, char *argv[])
+             sprintf(pid, "%d", getpid());
+             write(fd, pid, strlen(pid));
+          }
++         /*
+          for (id = 1; id <= noOfUe; id++)
+          {
+             tsStartUlData(id);
+             sleep(1);
++         } */
++         for (i=0; i < 32; i++) {
++            if (UeIpInfoLst[i].teid != 0) {
++                printf("Adding Teid %#x, IP addr %d.%d.%d.%d to file\n", 
++                        UeIpInfoLst[i].teid,
++                        UeIpInfoLst[i].UeIpAdrLst[0][0], 
++                        UeIpInfoLst[i].UeIpAdrLst[0][1], 
++                        UeIpInfoLst[i].UeIpAdrLst[0][2],
++                        UeIpInfoLst[i].UeIpAdrLst[0][3]); 
++                fprintf(file, "%08x,%d.%d.%d.%d\n", 
++                        UeIpInfoLst[i].teid,
++                        UeIpInfoLst[i].UeIpAdrLst[0][0], 
++                        UeIpInfoLst[i].UeIpAdrLst[0][1], 
++                        UeIpInfoLst[i].UeIpAdrLst[0][2],
++                        UeIpInfoLst[i].UeIpAdrLst[0][3]); 
++            }
++         }
++         fflush(file); 
++         fclose(file);
++         sleep(300);
++         /*for (id = 1; id <= noOfUe; id++)
++         {
++            tsSendUeCntxtReleaseRequest(id, 18);
++            sleep(1);
+          }
+-         int i;
++
++         for (id = 1; id <= noOfUe; id++)
++         {
++            printf("[Stub] Performing periodic TAU\n");
++            printf("[Stub] ueId(%d)\n", id);
++            testPeriodicTauRequest(id);
++            sleep(5);
++         }
++         for (id = 1; id <= noOfUe; id++)
++         {
++	 	testPagingProc(id);
++	 } */
++
+          for (i = 0; i < 13 && fopen(PID_FILE, "r"); i++) {
+             sleep(10);
+          }
+@@ -742,16 +783,45 @@ int main(int argc, char *argv[])
+       }
+       else if (!strcmp(argv[1], "PdnConnReq"))
+       {
++	      int i = 0;
++         FILE* file  = fopen("/tmp/teid.csv",  "w+");
++         fprintf(file, "%s,%s\n", "TEID","IP") ;
++
+          for (id = 1; id <= noOfUe; id++)
+          {
+             tsSendAttachRequest(id);
+             sleep(2);
+          }
++	 sleep(10);
+          for (id = 1; id <= noOfUe; id++)
+          {
+             testUePdnConnReq(id);
+             sleep(2);
+          }
++	 printf("Br data [0]:[%#x] [1]:[%#x]\n", 
++			 brData[0].teid, 
++			 brData[1].teid);
++	 /* Support for only two for now */
++         for (i=0; i < 2; i++) {
++            if (brData[i].teid != 0) {
++                printf("Adding Teid %#x, IP addr %d.%d.%d.%d to file\n", 
++                        brData[i].teid,
++                        UeIpInfoLst[0].UeIpAdrLst[i][0], 
++                        UeIpInfoLst[0].UeIpAdrLst[i][1], 
++                        UeIpInfoLst[0].UeIpAdrLst[i][2],
++                        UeIpInfoLst[0].UeIpAdrLst[i][3]); 
++                fprintf(file, "%08x,%d.%d.%d.%d\n", 
++                        brData[i].teid,
++                        UeIpInfoLst[0].UeIpAdrLst[i][0], 
++                        UeIpInfoLst[0].UeIpAdrLst[i][1], 
++                        UeIpInfoLst[0].UeIpAdrLst[i][2],
++                        UeIpInfoLst[0].UeIpAdrLst[i][3]); 
++            }
++         }
++         fflush(file); 
++         fclose(file);
++
++	 sleep(300);
+          for (id = 1; id <= noOfUe; id++)
+          {
+             tsSendDetachRequest(id, UE_SWITCHOFF_DETACH, UE_IN_CONNECTED_MODE);
 diff --git a/TestCntlrStub/src/ts_utls.c b/TestCntlrStub/src/ts_utls.c
-index 8265b45..ec32804 100644
+index 8265b45..515c67d 100644
 --- a/TestCntlrStub/src/ts_utls.c
 +++ b/TestCntlrStub/src/ts_utls.c
-@@ -170,20 +170,26 @@ void tsStartDlData(unsigned char ueId)
+@@ -41,6 +41,7 @@
+ int paging_ueid = 0;
+ int nwInitDetach_ueid = 0;
+ tsErabLst ueErabInfo[32];
++tsBrData  brData[2];
+ FwErabRelCmd_t erabRelCmdInfo[32];
+ extern char videoSrvrIp[20]; /* Values will be stored from reading the nbCfg.txt */
+ extern S8 ueIntf[]; /* This is defined in ennApp/nb_traffic_handler.c */
+@@ -55,14 +56,14 @@ void trf_test_init(void)
+    test_parms.test_id = 1;
+    test_parms.duration = 120;
+    test_parms.trfgen_type = SERVER;
+-   test_parms.traffic_type = TCP;
++   test_parms.traffic_type = UDP;
+ 
+    trfgen_configure_test(test_parms.test_id,test_parms);
+ 
+    test_parms.test_id = 2;
+    test_parms.duration = 120;
+    test_parms.trfgen_type = CLIENT;
+-   test_parms.traffic_type = TCP;
++   test_parms.traffic_type = UDP;
+ 
+    trfgen_configure_test(test_parms.test_id,test_parms);
+ }
+@@ -170,20 +171,26 @@ void tsStartDlData(unsigned char ueId)
  
  void tsStartUlData(unsigned char ueId)
  {
@@ -500,7 +1127,40 @@ index 8265b45..ec32804 100644
        idx++;
     }
     return;
-@@ -394,6 +400,12 @@ int TC_msg_recv(int msgid, int timeout)
+@@ -255,6 +262,15 @@ int TC_msg_recv(int msgid, int timeout)
+       {
+          printf("\n[Stub] Received msgptr.mtype = %ld\n", msgptr.msgType);
+          msg_recvd = TRUE;
++         if ((INT_CTX_SETUP_IND == msgid && msgptr.msgType == UE_ATTACH_ACCEPT_IND) ||
++             (UE_ATTACH_ACCEPT_IND == msgid && msgptr.msgType == INT_CTX_SETUP_IND)) {
++             printf("out of order \n"); 
++             msg_recvd = TRUE; 
++             retVal = OOO; 
++             break; 
++
++         }
++             
+          retVal = FAIL;
+          exit(0);
+       }
+@@ -375,7 +391,15 @@ int TC_msg_recv(int msgid, int timeout)
+          break;
+       case INT_CTX_SETUP_IND:
+          tfwIntCtxSetupInd = (FwNbIntCtxSetupInd_t *)&msgptr.msg;
+-         printf("Initial Context Setup Indication (ueId: %d) (status: %d)\n", tfwIntCtxSetupInd->ueId,tfwIntCtxSetupInd->status);
++         printf("Initial Context Setup Indication (ueId: %d) (status: %d) (teid: %#x\n", tfwIntCtxSetupInd->ueId,tfwIntCtxSetupInd->status, 
++                 tfwIntCtxSetupInd->teid);
++	 if (tfwIntCtxSetupInd->status != 0xAB) {
++	        brData[0].teid = tfwIntCtxSetupInd->teid;
++	       UeIpInfoLst[tfwIntCtxSetupInd->ueId -1].teid = tfwIntCtxSetupInd->teid;	
++	 }
++	 else {
++		brData[1].teid = tfwIntCtxSetupInd->teid;
++	 }
+          break;
+       case UE_PDN_DISCONNECT_TIMEOUT_IND:
+          printf("[Stub] Received PDN Disconnect Timeout Ind from TFW\n");
+@@ -394,6 +418,12 @@ int TC_msg_recv(int msgid, int timeout)
        unsigned char  ueId = TC_AttachAccept.ue_Id;
        memcpy(UeIpInfoLst[ueId-1].UeIpAdrLst[UeIpInfoLst[ueId-1].noIfAssinedIps],
               TC_AttachAccept.esmInfo.pAddr.addrInfo, 4);
@@ -513,7 +1173,98 @@ index 8265b45..ec32804 100644
        T3412 = TC_AttachAccept.t3412;
        printf("[Stub] T3412 = %d\n", T3412);
        UeIpInfoLst[ueId-1].noIfAssinedIps++;
-@@ -1765,11 +1777,11 @@ int tsSendResetReq(unsigned int resetType, int numOfUes, unsigned char *ueLst)
+@@ -1488,6 +1518,7 @@ void tsAttach_PCO_DRX(unsigned char ueId)
+ void tsCompleteAttach(unsigned char ueId)
+ {
+    void* msgptr =  NULL;
++   int retval = SUCC; 
+ 
+    printf("[Stub] Entering tsCompleteAttach(), ueId(%d)\n", ueId);
+ 
+@@ -1505,11 +1536,24 @@ void tsCompleteAttach(unsigned char ueId)
+    tfwApi(UE_END_TO_END_ATTACH_REQUEST, msgptr);
+    free(msgptr);
+ 
++   retval = TC_msg_recv(INT_CTX_SETUP_IND, 10); 
+    /* Wait for Initial Context Setup indication */
+-   if (TC_msg_recv(INT_CTX_SETUP_IND, 10)== SUCC)
++   if (retval == SUCC)
+    {
+       printf("\n[Stub] Received Initial Context Setup indication\n");
+    }
++   else if (retval == OOO)
++   {
++      retval = TC_msg_recv(INT_CTX_SETUP_IND, 10);
++      if (retval == SUCC) {
++        printf("\n[Stub] Received Initial Context Setup indication\n");
++      }
++      else {
++          printf("\n[Stub] Initial Context Setup indication failed\n");
++          exit(-1); 
++      }
++      return; 
++   }
+    else
+    {
+       printf("\n[Stub] Initial Context Setup indication failed\n");
+@@ -1667,6 +1711,11 @@ int tsSendUeCntxtReleaseRequest(unsigned char ueId, unsigned char cause)
+    tfwApi(UE_CNTXT_REL_REQUEST, msgptr);
+    free(msgptr);
+ 
++   if(TC_msg_recv(UE_EMM_INFORMATION, 10) == SUCC)
++   {
++      printf("\nReceived UE Context Release indication\n");
++   }
++
+    if(TC_msg_recv(UE_CTX_REL_IND, 10) == SUCC)
+    {
+       printf("\nReceived UE Context Release indication\n");
+@@ -1724,10 +1773,20 @@ int tsSendPdnConnReq(uepdnConReq_t *pdnConReq)
+             pdnConReq->pdnAPN_pr.pdn_apn,pdnConReq->pdnAPN_pr.len);   
+    }
+    /* Send PDN Connection Request  to TfwApp */
+-   printf("\n[Stub] Sending PDN Connectivty Request, ueId(%d)\n", pdnConReq->ue_Id);
++   printf("\n[Stub] Test Sending PDN Connectivty Request, ueId(%d)\n", pdnConReq->ue_Id);
+    tfwApi(UE_PDN_CONN_REQ, msgptr);
+    free(msgptr);
+ 
++
++   if (TC_msg_recv(UE_EMM_INFORMATION, 10) == SUCC)
++   {
++      printf("\n[Stub] UE EMM information received\n");
++   }
++   if (TC_msg_recv(INT_CTX_SETUP_IND, 10) == SUCC)
++   {
++      printf("\n[Stub] UE EMM information received\n");
++   }
++
+    /* Wait For Auth request indication */
+    if (TC_msg_recv(UE_PDN_CONN_RSP_IND, 10) == SUCC)
+    {
+@@ -1737,6 +1796,22 @@ int tsSendPdnConnReq(uepdnConReq_t *pdnConReq)
+    {
+       printf("\n[Stub] UE Pdn Connection Rsp indication failed\n");
+    }
++
++
++   U32 ue_Id = pdnConReq->ue_Id; 
++
++   printf("\n[Stub] Test Sending Enb Config Transfer, ueId(%d)\n", pdnConReq->ue_Id);
++   tfwApi(ENB_CONFIGURATION_TRANSFER, &ue_Id); 
++
++   if (TC_msg_recv(MME_CONFIGURATION_TRANSFER, 10) == SUCC)
++   {
++      printf("\n[Stub] MME config transfer  Completed\n");
++   }
++   else
++   {
++      printf("\n[Stub] MME config transfer indication failed\n");
++   }
++
+    return 0; 
+ }
+ 
+@@ -1765,11 +1840,11 @@ int tsSendResetReq(unsigned int resetType, int numOfUes, unsigned char *ueLst)
        ((ResetReq*)msgptr)->cause.causeVal = 1;
  
        ((ResetReq*)msgptr)->r.partialRst.numOfConn = numOfUes;
@@ -528,3 +1279,52 @@ index 8265b45..ec32804 100644
        free(msgptr);
     }
  
+diff --git a/TestCntlrStub/src/ts_utls.x b/TestCntlrStub/src/ts_utls.x
+index 9e4ff06..7389a11 100644
+--- a/TestCntlrStub/src/ts_utls.x
++++ b/TestCntlrStub/src/ts_utls.x
+@@ -39,6 +39,12 @@ typedef struct _msgbuf
+    char msg[BUFSIZE];
+ }MsgBuf;
+ 
++typedef struct br_data
++{
++   U32 teid; 
++   unsigned char ip[4];
++} tsBrData;
++
+ typedef struct _tsErabList
+ {
+    int numOfBrs;
+@@ -50,7 +56,8 @@ extern tsErabLst ueErabInfo[];
+ typedef struct _ueIpInfo
+ {
+   unsigned char UeIpAdrLst[11][4];
+-  unsigned char noIfAssinedIps; 
++  unsigned char noIfAssinedIps;
++  unsigned int  teid;
+ }UeIpInfo;
+ 
+ typedef struct _ueDedBerInfo
+@@ -117,6 +124,7 @@ int testNormalTauRequest(unsigned char);
+ int testNormalTauRequestWithActFlag(unsigned char);
+ void testUeCntxtRelRequest(unsigned char);
+ void testUeRadCapModReq(unsigned char ueId);
++int testPagingProc(unsigned char);
+ int testNormalPaging(unsigned char);
+ int testTimeoutPaging(unsigned char);
+ int testNwInitDetach(unsigned char );
+diff --git a/Trfgen/src/trfgen.c b/Trfgen/src/trfgen.c
+index 4117536..c32e8e4 100644
+--- a/Trfgen/src/trfgen.c
++++ b/Trfgen/src/trfgen.c
+@@ -333,7 +333,8 @@ void trfgen_start_test(int test_id, char *host_ip, char *bind_ip, char *host_por
+    test->reporter_callback = trfgen_iperf_reporter_callback;
+    test->stats_callback = trfgen_iperf_stats_callback;
+ #endif
+-   iperf_set_verbose( test, 0 );
++   iperf_set_verbose( test, 1 );
++   test->debug = 1; 
+ 
+    if(tstcfg[test_id].traffic_type == TCP)
+       set_protocol(test, Ptcp);
