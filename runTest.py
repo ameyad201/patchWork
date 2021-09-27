@@ -6,7 +6,7 @@ import requests
 
 def send_slack_message (message):
     payload = '{"text":"%s"}' % message
-    response = requests.post("https://hooks.slack.com/services/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", data = payload);
+    response = "NEED TO ADD SLACK WEBHOOK"
     print(response)
 
 print("Running Attach Detach testcase")
