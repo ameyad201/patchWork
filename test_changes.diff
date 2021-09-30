@@ -10,7 +10,7 @@ index c16383f..95d094b 100644
  5 0 5 0 2 9 8 7 6 5 0 0 5 0 9
  2 0 0 0 1 0 0 0 1 0 0 0 9 0 5
 diff --git a/TestCntlrApp/cfg/nbAppCfg.txt b/TestCntlrApp/cfg/nbAppCfg.txt
-index bb1bdab..e3c6de4 100644
+index bb1bdab..f718f7c 100644
 --- a/TestCntlrApp/cfg/nbAppCfg.txt
 +++ b/TestCntlrApp/cfg/nbAppCfg.txt
 @@ -1,11 +1,11 @@
@@ -23,7 +23,7 @@ index bb1bdab..e3c6de4 100644
 -SCTP_IP_ADDR             192.168.200.159
 -ENB_NAME                 "RADISYS"
 -PLMN_ID                  50502
-+MME_ADDR                 54.215.44.1
++MME_ADDR                 54.151.101.161
 +SCTP_IP_ADDR             172.31.2.228
 +ENB_NAME                 "RADISYS1"
 +PLMN_ID                  00101
@@ -38,7 +38,7 @@ index bb1bdab..e3c6de4 100644
 -VS_IP_ADDR               192.168.200.136
 +UE_ETH_INTF              eth0
 +VS_IP_ADDR               8.8.8.8
-+ENB_IP_ADDR_EXT          172.31.2.228
++ENB_IP_ADDR_EXT          54.177.24.134 
  CFGEND
 diff --git a/TestCntlrApp/cfg/testCaseList_1.txt b/TestCntlrApp/cfg/testCaseList_1.txt
 index 1a5c99d..2b175fc 100644
@@ -904,9 +904,18 @@ index bc150a1..479eed7 100644
  {
     tsSendAttachRequest(ueId);
 diff --git a/TestCntlrStub/src/ts_atchDtchProcs.c b/TestCntlrStub/src/ts_atchDtchProcs.c
-index a4d24d0..89bc8bb 100644
+index a4d24d0..2925d9d 100644
 --- a/TestCntlrStub/src/ts_atchDtchProcs.c
 +++ b/TestCntlrStub/src/ts_atchDtchProcs.c
+@@ -203,7 +203,7 @@ int testNwInitDetach(unsigned char ueId)
+          "----------------------------------\n");
+ 
+    /* Wait for Service Reject Indication */
+-   if (TC_msg_recv(UE_NW_INIT_DETACH_REQUEST, 10) == SUCC)
++   if (TC_msg_recv(UE_NW_INIT_DETACH_REQUEST, 300) == SUCC)
+    {
+       printf("\nReceived Network Initiated Detach\n");
+    }
 @@ -281,10 +281,10 @@ void testErrIndWithIvalidUeS1apIds(unsigned char ueId)
  int testUeInitiatedDedBerReq(unsigned char ueId)
  {
@@ -920,23 +929,34 @@ index a4d24d0..89bc8bb 100644
     /* Fill Attach request */
     msgptr = malloc(sizeof(ueBearerAllocReq_t));
     memset(msgptr, 0, sizeof(ueBearerAllocReq_t));
-@@ -351,8 +351,13 @@ int testUeInitiatedDedBerReq(unsigned char ueId)
+@@ -351,9 +351,13 @@ int testUeInitiatedDedBerReq(unsigned char ueId)
     printf("\n[Stub] Sending Ue Bearer Resource allocation request, ueId(%d)\n", ueId);
     tfwApi(UE_BER_RES_ALLOC_REQ, msgptr);
     free(msgptr);
--
 +#endif
-    /* Wait For Auth request indication */
-+   if (TC_msg_recv(UE_EMM_INFORMATION, 10) == SUCC)
+ 
+-   /* Wait For Auth request indication */
+-   if (TC_msg_recv(UE_ACT_DED_BER_REQ, 10) == SUCC)
++   if (TC_msg_recv(INT_CTX_SETUP_IND, 10) == SUCC)
 +   {
-+      printf("\n[Stub]Received UE EMM INFO ueId(%d)\n", ueId);
++      printf("\n[Stub] Init context setup  received\n");
 +   }
-+
-    if (TC_msg_recv(UE_ACT_DED_BER_REQ, 10) == SUCC)
++   if (TC_msg_recv(UE_ACT_DED_BER_REQ, 300) == SUCC)
     {
        printf("\n[Stub]Received Activate Dedicated bearer Request ueId(%d)\n", ueId);
+    }
+@@ -371,8 +375,7 @@ int testUeInitiatedDedBerReq(unsigned char ueId)
+    printf("\n[Stub] Sending Ue Actv Dedicated Bearer Acc, ueId(%d)\n", ueId);
+    tfwApi(UE_ACT_DED_BER_ACC, msgptr);
+    free(msgptr);
+-   sleep(5);
+-   
++   sleep(2);
+    return 0;
+ }
+ 
 diff --git a/TestCntlrStub/src/ts_main.c b/TestCntlrStub/src/ts_main.c
-index 5153dc2..f008214 100644
+index 5153dc2..e6ef20e 100644
 --- a/TestCntlrStub/src/ts_main.c
 +++ b/TestCntlrStub/src/ts_main.c
 @@ -50,6 +50,7 @@ int msgQid = -1;
@@ -947,7 +967,32 @@ index 5153dc2..f008214 100644
  
  UeIpInfo UeIpInfoLst[32];
  UeDedBerInfo UeDedBerLst[32];
-@@ -384,7 +385,6 @@ int main(int argc, char *argv[])
+@@ -312,6 +313,7 @@ int main(int argc, char *argv[])
+    /* Configure Ue App */
+    tsUeAppConfig();
+    noOfUe = (int)atoi(argv[2]);
++   fflush(stdout);
+ 
+    /* Read imsi from file and send ue config request for 
+     * required num of Ues */
+@@ -320,7 +322,7 @@ int main(int argc, char *argv[])
+    else
+       tsReadImsiAndSendUeConfig(noOfUe);/*(noOfUe);*/
+ 
+-
++   fflush(stdout);
+    /* Configure EnodeB App */
+    enbCfgWithS1Setup();
+ 
+@@ -329,6 +331,7 @@ int main(int argc, char *argv[])
+       printf("[Stub] ERROR: Excess command line arguments !\n");
+       exit(0);
+    }
++   fflush(stdout);
+ 
+    for (;((argc == 3) && !eof); )
+    {
+@@ -384,7 +387,6 @@ int main(int argc, char *argv[])
              printf("[Stub] ueId(%d)\n", id);
              tsStepByStepAttachWithGuti(id);
           }
@@ -955,7 +1000,7 @@ index 5153dc2..f008214 100644
           printf("[Stub] Detaching UEs...\n");
           sleep(2);
  
-@@ -554,10 +554,14 @@ int main(int argc, char *argv[])
+@@ -554,10 +556,14 @@ int main(int argc, char *argv[])
        }
        else if (!strcmp(argv[1], "AttachAndUlData"))
        {
@@ -971,7 +1016,7 @@ index 5153dc2..f008214 100644
           }
           unsigned int attempts = 0;
           int fd;
-@@ -570,12 +574,49 @@ int main(int argc, char *argv[])
+@@ -570,12 +576,50 @@ int main(int argc, char *argv[])
              sprintf(pid, "%d", getpid());
              write(fd, pid, strlen(pid));
           }
@@ -999,7 +1044,8 @@ index 5153dc2..f008214 100644
 +         }
 +         fflush(file); 
 +         fclose(file);
-+         sleep(300);
++	 fflush(stdout);
++         sleep(60);
 +         /*for (id = 1; id <= noOfUe; id++)
 +         {
 +            tsSendUeCntxtReleaseRequest(id, 18);
@@ -1022,7 +1068,15 @@ index 5153dc2..f008214 100644
           for (i = 0; i < 13 && fopen(PID_FILE, "r"); i++) {
              sleep(10);
           }
-@@ -742,16 +783,45 @@ int main(int argc, char *argv[])
+@@ -591,6 +635,7 @@ int main(int argc, char *argv[])
+          {
+             deleteCfgdUeIps(id);
+          }
++	 fflush(stdout);
+          sleep(2);
+          tsCleanup();
+       }
+@@ -742,16 +787,45 @@ int main(int argc, char *argv[])
        }
        else if (!strcmp(argv[1], "PdnConnReq"))
        {
@@ -1068,8 +1122,56 @@ index 5153dc2..f008214 100644
           for (id = 1; id <= noOfUe; id++)
           {
              tsSendDetachRequest(id, UE_SWITCHOFF_DETACH, UE_IN_CONNECTED_MODE);
+@@ -888,11 +962,47 @@ int main(int argc, char *argv[])
+       }
+       else if (!strcmp(argv[1], "UeInitiatedDedBer"))
+       {
++	 int i = 0;
++         FILE* file  = fopen("/tmp/teid.csv",  "w+");
++         fprintf(file, "%s,%s\n", "TEID","IP") ;
++
++
+          for (id = 1; id <= noOfUe; id++)
+          {
+             testUeInitiatedDedBerReq(id);
+             sleep(5);
+          }
++	 printf("Br data [0]:[%#x] [1]:[%#x]\n", 
++			 brData[0].teid, 
++			 brData[1].teid);
++	 /* Support for only two for now */
++         for (i=0; i < 2; i++) {
++            if (brData[i].teid != 0) {
++                printf("Adding Teid %#x, IP addr %d.%d.%d.%d to file\n", 
++                        brData[i].teid,
++                        UeIpInfoLst[0].UeIpAdrLst[0][0], 
++                        UeIpInfoLst[0].UeIpAdrLst[0][1], 
++                        UeIpInfoLst[0].UeIpAdrLst[0][2],
++                        UeIpInfoLst[0].UeIpAdrLst[0][3]); 
++                fprintf(file, "%08x,%d.%d.%d.%d\n", 
++                        brData[i].teid,
++                        UeIpInfoLst[0].UeIpAdrLst[0][0], 
++                        UeIpInfoLst[0].UeIpAdrLst[0][1], 
++                        UeIpInfoLst[0].UeIpAdrLst[0][2],
++                        UeIpInfoLst[0].UeIpAdrLst[0][3]); 
++            }
++         }
++         fflush(file); 
++         fclose(file);
++
++	 sleep(300);
++
++         for (id = 1; id <= noOfUe; id++)
++         {
++            tsSendDetachRequest(id, UE_SWITCHOFF_DETACH, UE_IN_CONNECTED_MODE);
++            sleep(2);
++         }
++
+       }
+       else if (!strcmp(argv[1], "ActvDedBerRejWithInvalidBerId"))
+       {
 diff --git a/TestCntlrStub/src/ts_utls.c b/TestCntlrStub/src/ts_utls.c
-index 8265b45..515c67d 100644
+index 8265b45..32a4adc 100644
 --- a/TestCntlrStub/src/ts_utls.c
 +++ b/TestCntlrStub/src/ts_utls.c
 @@ -41,6 +41,7 @@
@@ -1173,7 +1275,19 @@ index 8265b45..515c67d 100644
        T3412 = TC_AttachAccept.t3412;
        printf("[Stub] T3412 = %d\n", T3412);
        UeIpInfoLst[ueId-1].noIfAssinedIps++;
-@@ -1488,6 +1518,7 @@ void tsAttach_PCO_DRX(unsigned char ueId)
+@@ -583,6 +613,11 @@ void tsStepByStepAttachWithImsi(unsigned char ueId)
+    tfwApi(UE_ATTACH_COMPLETE, msgptr);
+    free(msgptr);
+ 
++   if(TC_msg_recv(UE_EMM_INFORMATION, 10) == SUCC)
++   {
++	   printf("\nReceived UE EMM info indication\n");
++   }
++
+ }
+ void tsAttachWithAUTV(unsigned char ueId)
+ {
+@@ -1488,6 +1523,7 @@ void tsAttach_PCO_DRX(unsigned char ueId)
  void tsCompleteAttach(unsigned char ueId)
  {
     void* msgptr =  NULL;
@@ -1181,9 +1295,11 @@ index 8265b45..515c67d 100644
  
     printf("[Stub] Entering tsCompleteAttach(), ueId(%d)\n", ueId);
  
-@@ -1505,11 +1536,24 @@ void tsCompleteAttach(unsigned char ueId)
+@@ -1504,12 +1540,31 @@ void tsCompleteAttach(unsigned char ueId)
+    printf("\n[Stub] Sending End-to-End Attach Request, ueId(%d)\n", ueId);
     tfwApi(UE_END_TO_END_ATTACH_REQUEST, msgptr);
     free(msgptr);
++   fflush(stdout);
  
 +   retval = TC_msg_recv(INT_CTX_SETUP_IND, 10); 
     /* Wait for Initial Context Setup indication */
@@ -1202,12 +1318,38 @@ index 8265b45..515c67d 100644
 +          printf("\n[Stub] Initial Context Setup indication failed\n");
 +          exit(-1); 
 +      }
++
++      if(TC_msg_recv(UE_EMM_INFORMATION, 10) == SUCC)
++      {
++	   printf("\nReceived UE EMM info indication\n");
++      }
 +      return; 
 +   }
     else
     {
        printf("\n[Stub] Initial Context Setup indication failed\n");
-@@ -1667,6 +1711,11 @@ int tsSendUeCntxtReleaseRequest(unsigned char ueId, unsigned char cause)
+@@ -1524,6 +1579,12 @@ void tsCompleteAttach(unsigned char ueId)
+    {
+       printf("\n[Stub] Attach failed\n");
+    }
++
++   if(TC_msg_recv(UE_EMM_INFORMATION, 10) == SUCC)
++   {
++      printf("\nReceived UE EMM info indication\n");
++   }
++
+ }
+ 
+ void tsSendAttachRequest(unsigned char ueId)
+@@ -1546,6 +1607,7 @@ void tsSendDetachRequest(unsigned char ueId, unsigned char cause, Ue_Mode ueMode
+    printf("\n[Stub] Sending Detach Request, ueId(%d)\n", ueId);
+    tfwApi(UE_DETACH_REQUEST, msgptr);
+    free(msgptr);
++   fflush(stdout);
+    if(cause == UE_NORMAL_DETACH)
+    {
+       /* Wait for UE detach Accept Indication */
+@@ -1667,6 +1729,11 @@ int tsSendUeCntxtReleaseRequest(unsigned char ueId, unsigned char cause)
     tfwApi(UE_CNTXT_REL_REQUEST, msgptr);
     free(msgptr);
  
@@ -1219,7 +1361,7 @@ index 8265b45..515c67d 100644
     if(TC_msg_recv(UE_CTX_REL_IND, 10) == SUCC)
     {
        printf("\nReceived UE Context Release indication\n");
-@@ -1724,10 +1773,20 @@ int tsSendPdnConnReq(uepdnConReq_t *pdnConReq)
+@@ -1724,10 +1791,15 @@ int tsSendPdnConnReq(uepdnConReq_t *pdnConReq)
              pdnConReq->pdnAPN_pr.pdn_apn,pdnConReq->pdnAPN_pr.len);   
     }
     /* Send PDN Connection Request  to TfwApp */
@@ -1228,11 +1370,6 @@ index 8265b45..515c67d 100644
     tfwApi(UE_PDN_CONN_REQ, msgptr);
     free(msgptr);
  
-+
-+   if (TC_msg_recv(UE_EMM_INFORMATION, 10) == SUCC)
-+   {
-+      printf("\n[Stub] UE EMM information received\n");
-+   }
 +   if (TC_msg_recv(INT_CTX_SETUP_IND, 10) == SUCC)
 +   {
 +      printf("\n[Stub] UE EMM information received\n");
@@ -1241,7 +1378,7 @@ index 8265b45..515c67d 100644
     /* Wait For Auth request indication */
     if (TC_msg_recv(UE_PDN_CONN_RSP_IND, 10) == SUCC)
     {
-@@ -1737,6 +1796,22 @@ int tsSendPdnConnReq(uepdnConReq_t *pdnConReq)
+@@ -1737,6 +1809,22 @@ int tsSendPdnConnReq(uepdnConReq_t *pdnConReq)
     {
        printf("\n[Stub] UE Pdn Connection Rsp indication failed\n");
     }
@@ -1264,7 +1401,7 @@ index 8265b45..515c67d 100644
     return 0; 
  }
  
-@@ -1765,11 +1840,11 @@ int tsSendResetReq(unsigned int resetType, int numOfUes, unsigned char *ueLst)
+@@ -1765,11 +1853,11 @@ int tsSendResetReq(unsigned int resetType, int numOfUes, unsigned char *ueLst)
        ((ResetReq*)msgptr)->cause.causeVal = 1;
  
        ((ResetReq*)msgptr)->r.partialRst.numOfConn = numOfUes;
